@@ -13,7 +13,7 @@ st.set_page_config(
 
 @st.cache_data
 def ler_dataset():
-    return pd.read_csv("./data/Customer-Churn-Records.csv")
+    return pd.read_csv("./data/Customer-Churn-Records.csv").head(100)
 
 
 st.header("Olá, bem-vindo ao Customer Flight Predictor!")
