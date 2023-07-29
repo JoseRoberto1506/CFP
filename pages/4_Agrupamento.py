@@ -39,3 +39,26 @@ df_filtrado2 = df_filtrado
 df_filtrado2['Offer'] = df_filtrado2['Offer'].replace({'Offer A': 1, 'Offer B': 2, 'Offer C': 3, 'Offer D': 4, 'Offer E': 5})
 df_filtrado3 = df_filtrado2
 df_filtrado3['Offer'] = df_filtrado3['Offer'].fillna(0)
+
+@st.cache_data
+def ler_dataset():
+    return df_filtrado3
+
+def filters_section():
+    st.markdown("#### Filtros")
+    df = ler_dataset()
+    filtros_padrao = df.columns.to_list()
+    filtros = st.multiselect(
+        'Filtrar por:', 
+        df.columns, 
+        filtros_padrao[1:10]
+        )
+    ordernar_por = st.multiselect(
+        'Ordenar por:', 
+        filtros, 
+        filtros[0]
+        )
+    st.dataframe(df.filter(filtros).sort_values(ordernar_por))
+
+header()
+filters_section()
