@@ -211,6 +211,38 @@ def clusterizacao():
 # Exibindo o plot no Streamlit
     st.pyplot()
 
+def header4():
+    st.header("Clusterização")
+
+def clusterizacao():
+    colunas_numericas = dsmutavel.select_dtypes(include=[np.number]).columns.tolist()
+
+    coluna_x = st.selectbox('Selecione a primeira coluna:', colunas_numericas)
+    coluna_y = st.selectbox('Selecione a segunda coluna:', colunas_numericas)
+
+    data_selected = dsmutavel[[coluna_x, coluna_y]]
+
+    kmeans = KMeans(n_clusters=3)
+    kmeans.fit(dataselected)
+
+    labels = kmeans.labels
+
+    data_selected['Cluster'] = labels
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(data_selected[coluna_x], data_selected[coluna_y], c=labels, cmap='viridis', alpha=0.6, s=100, label='Clusters')
+
+    plt.scatter(dsmutavel[coluna_x], dsmutavel[coluna_y], c='gray', alpha=0.4, s=20, label='Dados Originais')
+
+    plt.xlabel(coluna_x)
+    plt.ylabel(coluna_y)
+    plt.title('Clusterização do DataFrame dsmutavel usando K-Means')
+    plt.colorbar(label='Clusters')
+    plt.legend()
+    plt.show()
+
+    st.pyplot()
+
 
 header()
 filters_section()
@@ -221,3 +253,6 @@ silhueta()
 header4()
 clusterizacao()
 
+
+header4()
+clusterizacao()
