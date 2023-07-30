@@ -23,26 +23,55 @@ def header():
                 unsafe_allow_html= True)
 
 ds = pd.read_csv("./data/telco_churn_data.csv")
+dsmutavel = ds.copy()
 
 #Limpeza dos Dados
 
-ds = ds.drop('Customer ID', axis = 1)
+dsmutavel = dsmutavel.drop('Customer ID', axis = 1)
 
-filtro = ds['Churn Value'] == 0
-linhas_a_excluir = ds[filtro].sample(n=3305, random_state=42)
-df_filtrado = ds.drop(linhas_a_excluir.index) 
+filtro = dsmutavel['Churn Value'] == 0
+linhas_a_excluir = dsmutavel[filtro].sample(n=3305, random_state=42)
+dsmutavel = dsmutavel.drop(linhas_a_excluir.index) 
 
 
 #Transformação dos Dados
 
-df_filtrado2 = df_filtrado
-df_filtrado2['Offer'] = df_filtrado2['Offer'].replace({'Offer A': 1, 'Offer B': 2, 'Offer C': 3, 'Offer D': 4, 'Offer E': 5})
-df_filtrado3 = df_filtrado2
-df_filtrado3['Offer'] = df_filtrado3['Offer'].fillna(0)
+def transformar_para_inteiro (dataset_recebido2, coluna):
+    dataframe=dataset_recebido2.copy()
+    lista_valores_distintos = dataframe[coluna].unique().tolist()
+    lista_valores_distintos=[vd for vd in lista_valores_distintos if pd.notna(vd)]
+    eh_booleano = 'Yes' in lista_valores_distintos
+    if eh_booleano:
+        dataframe[coluna] = dataframe[coluna].replace({'No': 0, 'Yes': 1})
+    else:
+        if dataframe[coluna].isnull().any():
+            dataframe[coluna]=dataframe[coluna].fillna(0)
+        for i, valor in enumerate (lista_valores_distintos):
+            dataframe[coluna] = dataframe[coluna].replace({valor: i+1})
+    return dataframe
+
+def para_inteiro_varias_colunas (dataset_recebido, lista_colunas):
+    dataframe=dataset_recebido.copy()
+    for i, valor in enumerate (lista_colunas):
+        dataframe=transformar_para_inteiro(dataframe, valor)
+    return dataframe
+
+
+lista_nomes_colunas=['Offer', 'Internet Type', 'Contract', 'Payment Method', 'Gender',
+                                                  'Married', 'Referred a Friend', 'Phone Service', 'Multiple Lines',
+                                                    'Internet Service', 'Online Security', 'Online Backup',
+                                                      'Device Protection Plan', 'Premium Tech Support', 'Streaming TV',
+                                                        'Streaming Movies', 'Streaming Music', 'Unlimited Data', 
+                                                        'Paperless Billing', 'Under 30', 'Senior Citizen', 'Married', 'Dependents',
+                                                        'Churn Reason', 'Churn Category']
+dsmutavel=para_inteiro_varias_colunas(dsmutavel, lista_nomes_colunas)
+
+
+
 
 @st.cache_data
 def ler_dataset():
-    return df_filtrado3
+    return dsmutavel
 
 def filters_section():
     st.markdown("#### Filtros")
