@@ -223,7 +223,7 @@ def clusterizacao():
     data_selected = dsmutavel[[coluna_x, coluna_y]]
 
     kmeans = KMeans(n_clusters=3)
-    kmeans.fit(dataselected)
+    kmeans.fit(data_selected)
 
     labels = kmeans.labels
 
