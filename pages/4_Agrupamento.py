@@ -1,12 +1,12 @@
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-from sklearn.datasets import make_blobs
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_samples, silhouette_score
+from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import plotly.express as px
 
 
 st.set_page_config(
@@ -23,8 +23,8 @@ st.set_page_config(
 def main():
     header()
     df_processado = preprocessamento()
-    df_transformado = transformacao(df_processado)
-    clusterizacao(df_transformado)
+    features, rotulos = transformacao(df_processado)
+    mineracao_de_dados(features, rotulos)
 
 
 def header():
@@ -38,9 +38,7 @@ def header():
 def preprocessamento():
     st.markdown("### Pré-processamento")
     df = ler_dataset()
-    df = df.drop(['Customer ID'], axis = 1)
-    linhas_a_excluir = df[df['Churn Value'] == 0].sample(n=3305, random_state=42)
-    df = df.drop(linhas_a_excluir.index)
+    df = df.drop(['Customer ID', 'Churn Reason', 'Churn Category'], axis = 1)
 
     if st.checkbox("Mostrar dataset após o pré-processamento dos dados"):
         st.dataframe(df)
@@ -61,15 +59,21 @@ def transformacao(df):
                             'Referred a Friend', 'Phone Service', 'Multiple Lines', 'Internet Service', 
                             'Online Security', 'Online Backup', 'Device Protection Plan', 'Premium Tech Support', 
                             'Streaming TV', 'Streaming Movies', 'Streaming Music', 'Unlimited Data', 'Paperless Billing', 
-                            'Under 30', 'Senior Citizen', 'Married', 'Dependents', 'City', 'Churn Reason', 'Churn Category']
+                            'Under 30', 'Senior Citizen', 'Married', 'Dependents', 'City', ]
     dataframe = para_inteiro_varias_colunas(df, lista_nomes_colunas)
     dataframe['Customer Satisfaction'].fillna(0, inplace=True)
+
+    y = df['Churn Value'] # Rótulos    
+    x = df.drop('Churn Value', axis = 1) # Features
+    X_res, y_res = SMOTE().fit_resample(x, y)
+    df_balanceado = pd.DataFrame(X_res, columns=x.columns)
+    df_balanceado['Churn Value'] = y_res
     
     if st.checkbox("Mostrar dataset após a transformação dos dados"):
-        st.dataframe(dataframe)
+        st.dataframe(df_balanceado)
     st.divider()
 
-    return dataframe
+    return x, y
 
 
 def para_inteiro_varias_colunas (dataset_recebido, lista_colunas):
@@ -95,127 +99,39 @@ def transformar_para_inteiro (dataset_recebido, coluna):
     return dataframe
 
 
-def clusterizacao(df):
-    st.markdown("### Clusterização")
-    with st.expander("Método do Cotovelo para a identificação da quantidade ótima de clusters"):
-        cotovelo(df)
-    with st.expander("Método da Silhueta para a identificação da quantidade ótima de clusters"):
-        silhueta(df)
+def mineracao_de_dados(x, y):
+    st.markdown("### Mineração de dados")
+    with st.expander("Random Forest"):
+        random_forest(x, y)
+        
+
+def random_forest(x, y):
+    st.markdown("""
+                O Random Forest é um algoritmo de aprendizagem supervisionada que se baseia nas árvores de decisão, utilizado em problemas de classificação e regressão. De uma forma geral, ele seleciona aleatoriamente um subconjunto de características e combina as previsões individuais de várias árvores de decisão para obter uma previsão final mais precisa. Dentre as vantagens de utilizar o algoritmo de Random Forest estão a alta precisão, tolerância a dados ausentes e <i>outliers</i>, consegue lidar com grandes conjuntos de dados e tem um risco reduzido de <i>overfitting</i>. No entanto, é um algoritmo que requer mais recursos de armazenamento e tem um tempo de processamento maior.
+                """, 
+                unsafe_allow_html=True)
+    st.markdown("#### Resultados")
+    X_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42) # Dividir o dataset para treino e teste
+    classifier = RandomForestClassifier(n_estimators=100, random_state=42) # Criar o modelo de Random Forest
+    classifier.fit(X_train, y_train) # Treinar o modelo
+    y_pred = classifier.predict(x_test) # Fazer previsões com o modelo
+    report = classification_report(y_test, y_pred, output_dict=True) # Relatório de classificação do Random Forest
+    report_df = pd.DataFrame(report).transpose()
+    st.dataframe(report_df)
+    feature_importance_rf(classifier, X_train)
 
 
-def cotovelo(df):
-    st.markdown("### Método do Cotovelo")
-    inertia_values = []
-    k_values = range(2, 31)
-    for k in k_values:
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        kmeans.fit(df)
-        inertia_values.append(kmeans.inertia_)
+def feature_importance_rf(classifier, x_train):
+    st.markdown("#### Atributos mais importantes")
+    importance = classifier.feature_importances_
+    feature_importance_df = pd.DataFrame({'Feature': x_train.columns, 
+                                          'Importance': importance}).sort_values(by='Importance', 
+                                                                                 ascending=True).tail(5)
+    fig = px.bar(feature_importance_df, 
+                 y='Feature', 
+                 x='Importance', 
+                 labels={'Feature': 'Atributo', 'Importance': 'Importância'})
+    st.plotly_chart(fig)
 
-    plt.figure(figsize=(12, 10))
-    plt.plot(k_values, inertia_values, marker='o')
-    plt.xlabel('Número de clusters (K)')
-    plt.ylabel('Inércia')
-    plt.title('Método do Cotovelo para K-means')
-    plt.xticks(k_values)
-    st.pyplot(plt)
-
-
-def silhueta(df):
-    st.markdown("### Análise da Silhueta")
-    k_values = range(2, 21)
-    selected_k = st.selectbox('Escolha o valor de K:', k_values)
-    kmeans = KMeans(n_clusters=selected_k, random_state=42)
-
-    cluster_labels = kmeans.fit_predict(df)
-    silhouette_avg = silhouette_score(df, cluster_labels)
-    silhouette_values = silhouette_samples(df, cluster_labels)   
-     
-    plt.figure(figsize=(12, 10))    
-    y_lower = 10
-    for i in range(selected_k):
-        cluster_silhouette_values = silhouette_values[cluster_labels == i]
-        cluster_silhouette_values.sort()
-        size_cluster_i = cluster_silhouette_values.shape[0]
-        y_upper = y_lower + size_cluster_i
-        plt.fill_betweenx(np.arange(y_lower, y_upper), 0, cluster_silhouette_values, alpha=0.7)
-        plt.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
-        y_lower = y_upper + 10
-    
-    plt.axvline(x=silhouette_avg, color='red', linestyle='--', label='Média', linewidth=2)
-    plt.xlabel('Valores do coeficiente de silhueta')
-    plt.ylabel('Cluster')
-    plt.title('Análise das Silhuetas para K = {}'.format(selected_k))
-    plt.yticks([])
-    plt.xticks(np.arange(-0.1, 1.1, 0.1))
-    plt.xlim(-0.1, 1)
-    plt.legend()
-    st.pyplot(plt)
-
-
-def clusterizacao1(df):
-    st.markdown("### Clusterização")
-    colunas_numericas = df.select_dtypes(include=[np.number]).columns.tolist()
-
-    # Caixas de seleção para escolher as duas colunas para clusterização
-    coluna_x = st.selectbox('Selecione a primeira coluna:', colunas_numericas)
-    coluna_y = st.selectbox('Selecione a segunda coluna:', colunas_numericas)
-
-    # Criar DataFrame apenas com as colunas selecionadas
-    data_selected = df[[coluna_x, coluna_y]]
-
-    # Aplicar o algoritmo KMeans aos dados
-    kmeans = KMeans(n_clusters=3)
-    kmeans.fit(data_selected)
-
-    # Obtendo as etiquetas dos pontos (clusters)
-    labels = kmeans.labels_
-
-    # Adicionando as etiquetas dos clusters ao DataFrame
-    data_selected['Cluster'] = labels
-
-    # Plotando os dados coloridos de acordo com os clusters
-    plt.figure(figsize=(10, 6))
-    plt.scatter(data_selected[coluna_x], data_selected[coluna_y], c=labels, cmap='viridis', alpha=0.6, s=100, label='Clusters')
-
-    # Plotando todos os dados do DataFrame em cinza para visualizar a dispersão completa
-    plt.scatter(df[coluna_x], df[coluna_y], c='gray', alpha=0.4, s=20, label='Dados Originais')
-
-    plt.xlabel(coluna_x)
-    plt.ylabel(coluna_y)
-    plt.title('Clusterização do DataFrame dsmutavel usando K-Means')
-    plt.colorbar(label='Clusters')
-    plt.legend()
-
-    # Exibindo o plot no Streamlit
-    st.pyplot(plt)
-
-def clusterizacao2(df):
-    colunas_numericas = df.select_dtypes(include=[np.number]).columns.tolist()
-
-    coluna_x = st.selectbox('Selecione a primeira coluna:', colunas_numericas)
-    coluna_y = st.selectbox('Selecione a segunda coluna:', colunas_numericas)
-
-    data_selected = df[[coluna_x, coluna_y]]
-
-    kmeans = KMeans(n_clusters=3)
-    kmeans.fit(data_selected)
-
-    labels = kmeans.labels
-
-    data_selected['Cluster'] = labels
-
-    plt.figure(figsize=(10, 6))
-    plt.scatter(data_selected[coluna_x], data_selected[coluna_y], c=labels, cmap='viridis', alpha=0.6, s=100, label='Clusters')
-
-    plt.scatter(df[coluna_x], df[coluna_y], c='gray', alpha=0.4, s=20, label='Dados Originais')
-
-    plt.xlabel(coluna_x)
-    plt.ylabel(coluna_y)
-    plt.title('Clusterização do DataFrame dsmutavel usando K-Means')
-    plt.colorbar(label='Clusters')
-    plt.legend()
-
-    st.pyplot(plt)
 
 main()
