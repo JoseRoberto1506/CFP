@@ -73,7 +73,7 @@ def transformacao(df):
         st.dataframe(df_balanceado)
     st.divider()
 
-    return x, y
+    return df_balanceado.drop('Churn Value', axis = 1), df_balanceado['Churn Value']
 
 
 def para_inteiro_varias_colunas (dataset_recebido, lista_colunas):
