@@ -7,6 +7,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import plotly.express as px
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
 
 
 st.set_page_config(
@@ -103,6 +107,8 @@ def mineracao_de_dados(x, y):
     st.markdown("### Mineração de dados")
     with st.expander("Random Forest"):
         random_forest(x, y)
+    with st.expander("SVM"):
+        svm(x,y)
         
 
 def random_forest(x, y):
@@ -133,5 +139,29 @@ def feature_importance_rf(classifier, x_train):
                  labels={'Feature': 'Atributo', 'Importance': 'Importância'})
     st.plotly_chart(fig)
 
+
+def svm(x, y):
+    st.markdown("""
+                ESPERA CARREGAR, VIU
+                """, 
+                unsafe_allow_html=True)
+    st.markdown("#### Resultados")
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    linear_ou_nao=False
+    if linear_ou_nao:
+        svm_classifier = LinearSVC(C=1.0)
+    else:
+        svm_classifier = SVC(kernel='rbf', C=1.0, gamma='scale')
+    svm_classifier.fit(X_train_scaled, y_train)
+    svm_classifier.score(x, y)
+
+    y_pred = svm_classifier.predict(X_test_scaled)
+    report = classification_report(y_test, y_pred, output_dict=True) 
+    report_df = pd.DataFrame(report).transpose()
+    st.dataframe(report_df)
+    # feature_importance_rf(svm_classifier, X_train)
 
 main()
