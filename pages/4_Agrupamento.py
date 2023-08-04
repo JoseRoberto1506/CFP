@@ -4,13 +4,11 @@ import numpy as np
 from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 import plotly.express as px
-from sklearn.model_selection import train_test_split
+import plotly.figure_factory as ff
 from sklearn.svm import SVC
-from sklearn.svm import LinearSVC
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
 
 
 st.set_page_config(
@@ -41,8 +39,13 @@ def header():
 
 def preprocessamento():
     st.markdown("### Pré-processamento")
+    st.markdown("""
+                Nesta etapa, a coluna 'Customer ID' foir removida, pois ela é apenas um identificador único para cada cliente e não tem impacto nos modelos de <i>machine learning</i> que serão utilizados. Também foram removidas as colunas 'Churn Reason' e 'Churn Category', visto que que elas podem impactar negativamente os resultados dos algoritmos pois indicam o motivo que levou determinados clientes a deixarem a empresa, fazendo com que os modelos usados decorem os clientes que sairão. Na coluna 'Customer Satisfaction', foi utilizada a moda para preencher os valores faltantes, identificando qual o valor que mais se repete e inserindo-o nas linhas que possuem valor nulo.
+                """,
+                unsafe_allow_html=True)
     df = ler_dataset()
     df = df.drop(['Customer ID', 'Churn Reason', 'Churn Category'], axis = 1)
+    df['Customer Satisfaction'].fillna(df['Customer Satisfaction'].mode()[0], inplace=True)
 
     if st.checkbox("Mostrar dataset após o pré-processamento dos dados"):
         st.dataframe(df)
@@ -59,14 +62,19 @@ def ler_dataset():
 
 def transformacao(df):
     st.markdown("### Transformação")
+    st.markdown("""
+                Nesta etapa, foi utlizada a técnica <i>Label Encoding</i> para converter os dados das variáveis categóricas em valores numéricos. Em seguida, foi realizado o balanceamento dos dados utilizando a técnica <i>SMOTE</i>.
+                """,
+                unsafe_allow_html=True)
     lista_nomes_colunas = ['Offer', 'Internet Type', 'Contract', 'Payment Method', 'Gender', 'Married', 
                             'Referred a Friend', 'Phone Service', 'Multiple Lines', 'Internet Service', 
                             'Online Security', 'Online Backup', 'Device Protection Plan', 'Premium Tech Support', 
                             'Streaming TV', 'Streaming Movies', 'Streaming Music', 'Unlimited Data', 'Paperless Billing', 
                             'Under 30', 'Senior Citizen', 'Married', 'Dependents', 'City', ]
-    dataframe = para_inteiro_varias_colunas(df, lista_nomes_colunas)
-    dataframe['Customer Satisfaction'].fillna(0, inplace=True)
+    for coluna in lista_nomes_colunas:
+        df[coluna] = LabelEncoder().fit_transform(df[coluna])
 
+    # Balanceamento dos dados
     y = df['Churn Value'] # Rótulos    
     x = df.drop('Churn Value', axis = 1) # Features
     X_res, y_res = SMOTE().fit_resample(x, y)
@@ -78,29 +86,6 @@ def transformacao(df):
     st.divider()
 
     return df_balanceado.drop('Churn Value', axis = 1), df_balanceado['Churn Value']
-
-
-def para_inteiro_varias_colunas (dataset_recebido, lista_colunas):
-    dataframe = dataset_recebido
-    for coluna in lista_colunas:
-        dataframe = transformar_para_inteiro(dataframe, coluna)
-
-    return dataframe
-
-
-def transformar_para_inteiro (dataset_recebido, coluna):
-    dataframe = dataset_recebido
-    lista_valores_distintos = dataframe[coluna].unique().tolist()
-    lista_valores_distintos = [vd for vd in lista_valores_distintos if pd.notna(vd)]
-    if 'Yes' in lista_valores_distintos:
-        dataframe[coluna] = dataframe[coluna].replace({'No': 0, 'Yes': 1})
-    else:
-        if dataframe[coluna].isnull().any():
-            dataframe[coluna].fillna(0, inplace=True)
-        for i, valor in enumerate(lista_valores_distintos):
-            dataframe[coluna].replace({valor: i+1}, inplace=True)
-
-    return dataframe
 
 
 def mineracao_de_dados(x, y):
@@ -116,52 +101,75 @@ def random_forest(x, y):
                 O Random Forest é um algoritmo de aprendizagem supervisionada que se baseia nas árvores de decisão, utilizado em problemas de classificação e regressão. De uma forma geral, ele seleciona aleatoriamente um subconjunto de características e combina as previsões individuais de várias árvores de decisão para obter uma previsão final mais precisa. Dentre as vantagens de utilizar o algoritmo de Random Forest estão a alta precisão, tolerância a dados ausentes e <i>outliers</i>, consegue lidar com grandes conjuntos de dados e tem um risco reduzido de <i>overfitting</i>. No entanto, é um algoritmo que requer mais recursos de armazenamento e tem um tempo de processamento maior.
                 """, 
                 unsafe_allow_html=True)
-    st.markdown("#### Resultados")
-    X_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42) # Dividir o dataset para treino e teste
-    classifier = RandomForestClassifier(n_estimators=100, random_state=42) # Criar o modelo de Random Forest
-    classifier.fit(X_train, y_train) # Treinar o modelo
-    y_pred = classifier.predict(x_test) # Fazer previsões com o modelo
-    report = classification_report(y_test, y_pred, output_dict=True) # Relatório de classificação do Random Forest
-    report_df = pd.DataFrame(report).transpose()
-    st.dataframe(report_df)
-    feature_importance_rf(classifier, X_train)
 
+    # Dividir o dataset para treino e teste
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
 
-def feature_importance_rf(classifier, x_train):
-    st.markdown("#### Atributos mais importantes")
-    importance = classifier.feature_importances_
-    feature_importance_df = pd.DataFrame({'Feature': x_train.columns, 
-                                          'Importance': importance}).sort_values(by='Importance', 
-                                                                                 ascending=True).tail(5)
-    fig = px.bar(feature_importance_df, 
-                 y='Feature', 
-                 x='Importance', 
-                 labels={'Feature': 'Atributo', 'Importance': 'Importância'})
-    st.plotly_chart(fig)
+    # Criação, treinamento, previsões e resultados do modelo
+    classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+    classifier.fit(X_train, y_train)
+    y_pred = classifier.predict(X_test)
+    metricas_de_classificacao(y_test, y_pred, "Random Forest")
+    feature_importance(X_train.columns, classifier.feature_importances_)
+    matriz_de_confusao(confusion_matrix(y_test, y_pred))
 
 
 def svm(x, y):
     st.markdown("""
-                ESPERA CARREGAR, VIU
+                Support Vector Machines (SVM) são um conjunto de métodos de aprendizado de máquina supervisionado utilizados para classificação, regressão e detecção de outliers. De uma forma geral, ele busca encontrar um hiperplano que separe as amostras de diferentes classes no espaço vetorial, maximizando a margem entre as amostras mais próximas de cada classe e usando os vetores de suporte para determinar sua posição e orientação. As vantagens do SVM incluem sua efetividade em espaços de alta dimensionalidade, sua capacidade de lidar com mais dimensões do que amostras e o uso eficiente de um subconjunto de pontos de treinamento na função de decisão (chamados de vetores de suporte). Ele também é versátil, permitindo o uso de diferentes funções de <i>kernel</i> para a função de decisão.
                 """, 
                 unsafe_allow_html=True)
-    st.markdown("#### Resultados")
+
+    # Dividir o dataset para treino e teste
     X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+    # Padronização dos dados
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    linear_ou_nao=False
-    if linear_ou_nao:
-        svm_classifier = LinearSVC(C=1.0)
-    else:
-        svm_classifier = SVC(kernel='rbf', C=1.0, gamma='scale')
-    svm_classifier.fit(X_train_scaled, y_train)
-    svm_classifier.score(x, y)
 
+    # Criação, treinamento, previsões e resultados do modelo
+    svm_classifier = SVC(kernel='linear')
+    svm_classifier.fit(X_train_scaled, y_train)
     y_pred = svm_classifier.predict(X_test_scaled)
-    report = classification_report(y_test, y_pred, output_dict=True) 
+    metricas_de_classificacao(y_test, y_pred, "SVM")
+    feature_importance(X_train.columns, svm_classifier.coef_[0])
+    matriz_de_confusao(confusion_matrix(y_test, y_pred))
+
+
+def metricas_de_classificacao(y_true, y_pred, modelo):
+    st.markdown(f"<h6>Métricas de classificação do {modelo}</h6>", unsafe_allow_html=True)
+    report = classification_report(y_true, y_pred, output_dict=True)
     report_df = pd.DataFrame(report).transpose()
+    report_df = report_df.style.format({'precision': '{:.2%}', 'recall': '{:.2%}', 'f1-score': '{:.2%}', 'support': '{:.0f}'})
     st.dataframe(report_df)
-    # feature_importance_rf(svm_classifier, X_train)
+
+
+def feature_importance(features, importances):
+    feature_importance_df = pd.DataFrame({'Feature': features, 
+                                          'Importance': abs(importances)}).sort_values(by='Importance', 
+                                                                                 ascending=True).tail(5)
+    fig = px.bar(feature_importance_df, 
+                 y='Feature', 
+                 x='Importance', 
+                 labels={'Feature': 'Atributo', 'Importance': 'Importância'},
+                 title='Feature Importance')
+    st.plotly_chart(fig)
+
+
+def matriz_de_confusao(cm):
+    rotulos_classes = ["Não Saiu", "Saiu"]
+    df_cm = pd.DataFrame(cm, 
+                         index=rotulos_classes, 
+                         columns=rotulos_classes)
+    fig = ff.create_annotated_heatmap(z=df_cm.values, 
+                                      x=list(df_cm.columns), 
+                                      y=list(df_cm.index), 
+                                      colorscale='Blues')
+    fig.update_layout(xaxis_title='Valores Previstos', 
+                      yaxis_title='Valores Reais', 
+                      title='Matriz de Confusão')
+    st.plotly_chart(fig)
+
 
 main()
