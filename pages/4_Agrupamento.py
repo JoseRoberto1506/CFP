@@ -9,6 +9,11 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 import plotly.express as px
 import plotly.figure_factory as ff
 from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.naive_bayes import GaussianNB
 
 
 st.set_page_config(
@@ -88,13 +93,16 @@ def transformacao(df):
     return df_balanceado.drop('Churn Value', axis = 1), df_balanceado['Churn Value']
 
 
+
 def mineracao_de_dados(x, y):
     st.markdown("### Mineração de dados")
     with st.expander("Random Forest"):
         random_forest(x, y)
     with st.expander("SVM"):
         svm(x,y)
-        
+    with st.expander("KNN"):
+        knn(x, y)
+    
 
 def random_forest(x, y):
     st.markdown("""
@@ -170,6 +178,28 @@ def matriz_de_confusao(cm):
                       yaxis_title='Valores Reais', 
                       title='Matriz de Confusão')
     st.plotly_chart(fig)
+
+def knn(x, y):
+
+    st.markdown(""" O K-Nearest Neighbors (KNN) é um algoritmo de aprendizado de máquina supervisionado usado principalmente para tarefas de classificação e regressão. Ele se baseia no princípio de que exemplos semelhantes estão próximos uns dos outros no espaço de características. O KNN classifica um novo exemplo com base na maioria das classes dos seus vizinhos mais próximos. """, 
+                unsafe_allow_html=True)
+
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    knn = KNeighborsClassifier(n_neighbors=3)
+
+    knn.fit(X_train, y_train)
+
+    y_pred = knn.predict(X_test)
+
+    accuracy = accuracy_score(y_test, y_pred)
+
+    metricas_de_classificacao(y_test, y_pred, "KNN")
+    matriz_de_confusao(confusion_matrix(y_test, y_pred))
 
 
 main()
