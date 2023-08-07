@@ -102,6 +102,8 @@ def mineracao_de_dados(x, y):
         svm(x,y)
     with st.expander("KNN"):
         knn(x, y)
+    with st.expander("Naive Bayes"):
+        naive_bayes(x, y)
     
 
 def random_forest(x, y):
@@ -201,5 +203,28 @@ def knn(x, y):
     metricas_de_classificacao(y_test, y_pred, "KNN")
     matriz_de_confusao(confusion_matrix(y_test, y_pred))
 
+def naive_bayes(x, y):
 
+    st.markdown("""O Naive Bayes é um algoritmo de aprendizado de máquina que usa o Teorema de Bayes para calcular a probabilidade de uma instância pertencer a uma classe específica com base nas probabilidades das características condicionadas à classe. Embora faça a suposição simplificada de independência entre as características, o Naive Bayes é eficaz em tarefas de classificação, como filtragem de spam e categorização de texto, sendo particularmente útil em cenários com grandes conjuntos de dados e características categóricas, apesar de suas limitações.
+
+                """, 
+                unsafe_allow_html=True)
+
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    naive_bayes = GaussianNB()
+
+    naive_bayes.fit(X_train, y_train)
+
+    y_pred = naive_bayes.predict(X_test)
+
+    accuracy = accuracy_score(y_test, y_pred)
+
+    metricas_de_classificacao(y_test, y_pred, "Naives Bayes")
+    #feature_importance(X_train.columns, naive_bayes.featureimportances)
+    matriz_de_confusao(confusion_matrix(y_test, y_pred))
 main()
