@@ -19,15 +19,15 @@ def ler_dataset():
 
 
 def header():
-    st.header("Visualização de Teste")
+    st.header("Visualização de dados")
     st.markdown("""
-                Esta página apresenta algumas opções de filtragem a partir do <i>dataset</i>.
+                Esta página apresenta opções de filtragem e ordenação do <i>dataset</i>, permitindo uma visualização de dados mais dinâmica.
                 """,
                 unsafe_allow_html= True)
 
 
 def filters_section():
-    st.markdown("#### Filtros")
+    st.markdown("#### Filtros e Ordenação")
     df = ler_dataset()
     filtros_padrao = df.columns.to_list()
     filtros = st.multiselect(
