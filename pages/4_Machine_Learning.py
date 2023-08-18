@@ -31,6 +31,8 @@ def main():
     df_processado = preprocessamento()
     df_transformado, features, rotulos = transformacao(df_processado)
     mineracao_de_dados(features, rotulos)
+    clusterizacao(df_transformado)
+
 
 
 def header():
@@ -205,6 +207,60 @@ def naive_bayes(x, y):
     y_pred = naive_bayes.predict(X_test)
     metricas_de_classificacao(y_test, y_pred, "Naive Bayes")
     matriz_de_confusao(confusion_matrix(y_test, y_pred))
+
+def clusterizacao(df):
+    st.markdown("### Clusterização")
+    
+    with st.expander("Método do Cotovelo para a identificação da quantidade ótima de clusters"):
+        cotovelo(df)
+    with st.expander("Método da Silhueta para a identificação da quantidade ótima de clusters"):
+        silhueta(df)
+
+def cotovelo(df):
+    st.markdown("### Método do Cotovelo")
+    inertia_values = []
+    k_values = range(2, 21)
+    for k in k_values:
+        kmeans = KMeans(n_clusters=k, init='random', n_init=10, max_iter=300, random_state=42)
+        kmeans.fit(df)
+        inertia_values.append(kmeans.inertia_)
+
+    plt.figure(figsize=(12, 10))
+    plt.plot(k_values, inertia_values, marker='o')
+    plt.xlabel('Número de clusters (K)')
+    plt.ylabel('Inércia')
+    plt.title('Método do Cotovelo para K-means')
+    plt.xticks(k_values)
+    st.pyplot(plt)
+
+def silhueta(df):
+    st.markdown("### Análise da Silhueta")
+    k_values = range(2, 21)
+    selected_k = st.selectbox('Escolha o valor de K:', k_values)
+    kmeans = KMeans(n_clusters=selected_k, init='random', n_init=10, max_iter=300, random_state=42)
+
+    cluster_labels = kmeans.fit_predict(df)
+    silhouette_avg = silhouette_score(df, cluster_labels)
+    silhouette_values = silhouette_samples(df, cluster_labels)   
+
+    plt.figure(figsize=(12, 10))    
+    y_lower = 10
+    for i in range(selected_k):
+        cluster_silhouette_values = silhouette_values[cluster_labels == i]
+        cluster_silhouette_values.sort()
+        size_cluster_i = cluster_silhouette_values.shape[0]
+        y_upper = y_lower + size_cluster_i
+        plt.fill_betweenx(np.arange(y_lower, y_upper), 0, cluster_silhouette_values, alpha=0.7)
+        plt.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
+        y_lower = y_upper + 10
+
+    plt.axvline(x=silhouette_avg, color='red', linestyle='--', label='Média', linewidth=2)
+    plt.xlabel('Valores do coeficiente de silhueta')
+    plt.ylabel('Clusters')
+    plt.title(f'Análise das Silhuetas para K = {selected_k}')
+    plt.yticks(range(selected_k), range(selected_k))
+    plt.legend()
+    st.pyplot(plt)
 
 
 main()
