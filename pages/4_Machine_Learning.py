@@ -3,13 +3,16 @@ import streamlit as st
 from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import classification_report, confusion_matrix, silhouette_score, silhouette_samples
+from sklearn.preprocessing import StandardScaler
 import plotly.express as px
 import plotly.figure_factory as ff
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 st.set_page_config(
@@ -26,7 +29,7 @@ st.set_page_config(
 def main():
     header()
     df_processado = preprocessamento()
-    features, rotulos = transformacao(df_processado)
+    df_transformado, features, rotulos = transformacao(df_processado)
     mineracao_de_dados(features, rotulos)
 
 
@@ -67,13 +70,8 @@ def transformacao(df):
                 Nesta etapa, foi utlizada a técnica <i>Label Encoding</i> para converter os dados das variáveis categóricas em valores numéricos. Em seguida, foi realizado o balanceamento dos dados utilizando a técnica <i>SMOTE</i>.
                 """,
                 unsafe_allow_html=True)
-    lista_nomes_colunas = ['Offer', 'Internet Type', 'Contract', 'Payment Method', 'Gender', 'Married', 
-                           'Referred a Friend', 'Phone Service', 'Multiple Lines', 'Internet Service', 
-                           'Online Security', 'Online Backup', 'Device Protection Plan', 'Premium Tech Support', 
-                           'Streaming TV', 'Streaming Movies', 'Streaming Music', 'Unlimited Data', 'Paperless Billing', 
-                           'Under 30', 'Senior Citizen', 'Married', 'Dependents', 'City', ]
-    for coluna in lista_nomes_colunas:
-        df[coluna] = LabelEncoder().fit_transform(df[coluna])
+    colunas_categoricas = df.select_dtypes(include=['object']).columns
+    df = pd.get_dummies(df, columns=colunas_categoricas)
 
     # Balanceamento dos dados
     y = df['Churn Value'] # Rótulos    
@@ -86,7 +84,7 @@ def transformacao(df):
         st.dataframe(df_balanceado)
     st.divider()
 
-    return df_balanceado.drop('Churn Value', axis = 1), df_balanceado['Churn Value']
+    return df_balanceado, df_balanceado.drop('Churn Value', axis = 1), df_balanceado['Churn Value']
 
 
 def mineracao_de_dados(x, y):
@@ -104,6 +102,7 @@ def mineracao_de_dados(x, y):
         knn(x, y)
     with st.expander("Naive Bayes"):
         naive_bayes(x, y)
+    st.divider()
     
 
 def random_forest(x, y):
