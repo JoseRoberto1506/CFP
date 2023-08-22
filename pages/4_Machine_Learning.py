@@ -211,10 +211,20 @@ def naive_bayes(x, y):
 def clusterizacao(df):
     st.markdown("### Clusterização")
     
+    df = df.drop(['Avg Monthly Long Distance Charges', 'Avg Monthly GB Download',
+                   'Monthly Charge', 'Total Regular Charges', 'Total Refunds', 'Total Extra Data Charges'
+                   , 'Total Long Distance Charges', 'CLTV', 'Total Customer Svc Requests', 
+                   'Product/Service Issues Reported', 'Customer Satisfaction', 'Referred a Friend_Yes', 
+                   'Offer_Offer B', 'Offer_Offer C', 'Offer_Offer D', 'Offer_Offer E',
+                   'Internet Type_DSL', 'Internet Type_Fiber Optic', 'Contract_One Year', 
+                   'Contract_Two Year', 'Paperless Billing_Yes', 'Payment Method_Credit Card', 
+                   'Payment Method_Mailed Check', 'Under 30_Yes', 'Senior Citizen_Yes', 'Churn Value'],  axis = 1)
+
     with st.expander("Método do Cotovelo para a identificação da quantidade ótima de clusters"):
         cotovelo(df)
     with st.expander("Método da Silhueta para a identificação da quantidade ótima de clusters"):
         silhueta(df)
+
 
 def cotovelo(df):
     inertia_values = []
