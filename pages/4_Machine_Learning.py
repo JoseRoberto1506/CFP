@@ -46,11 +46,11 @@ def header():
 def preprocessamento():
     st.markdown("### Pré-processamento")
     st.markdown("""
-                Nesta etapa, a coluna 'Customer ID' foir removida, pois ela é apenas um identificador único para cada cliente e não tem impacto nos modelos de <i>machine learning</i> que serão utilizados. Também foram removidas as colunas 'Churn Reason' e 'Churn Category', visto que que elas podem impactar negativamente os resultados dos algoritmos pois indicam o motivo que levou determinados clientes a deixarem a empresa, fazendo com que os modelos usados decorem os clientes que sairão. Na coluna 'Customer Satisfaction', foi utilizada a moda para preencher os valores faltantes, identificando qual o valor que mais se repete e inserindo-o nas linhas que possuem valor nulo.
+                Nesta etapa, a coluna 'Customer ID' foi removida, pois ela é apenas um identificador único para cada cliente e não tem impacto nos modelos de <i>machine learning</i> que serão utilizados. Também foram removidas as colunas 'Churn Reason' e 'Churn Category', visto que que elas podem impactar negativamente os resultados dos algoritmos pois indicam o motivo que levou determinados clientes a deixarem a empresa, fazendo com que os modelos usados decorem os clientes que sairão. Na coluna 'Customer Satisfaction', foi utilizada a moda para preencher os valores faltantes, identificando qual o valor que mais se repete e inserindo-o nas linhas que possuem valor nulo.
                 """,
                 unsafe_allow_html=True)
     df = ler_dataset()
-    df = df.drop(['Customer ID', 'Churn Reason', 'Churn Category'], axis = 1)
+    df = df.drop(['Customer ID', 'City', 'Zip Code', 'Latitude', 'Longitude', 'Population', 'Churn Reason', 'Churn Category'], axis = 1)
     df['Customer Satisfaction'].fillna(df['Customer Satisfaction'].mode()[0], inplace=True)
 
     if st.checkbox("Mostrar dataset após o pré-processamento dos dados"):
@@ -69,11 +69,11 @@ def ler_dataset():
 def transformacao(df):
     st.markdown("### Transformação")
     st.markdown("""
-                Nesta etapa, foi utlizada a técnica <i>Label Encoding</i> para converter os dados das variáveis categóricas em valores numéricos. Em seguida, foi realizado o balanceamento dos dados utilizando a técnica <i>SMOTE</i>.
+                Nesta etapa, foi utlizada a técnica <i>One-Hot Encoding</i> para converter os dados das variáveis categóricas em valores numéricos. Em seguida, foi realizado o balanceamento dos dados utilizando a técnica <i>SMOTE</i>.
                 """,
                 unsafe_allow_html=True)
     colunas_categoricas = df.select_dtypes(include=['object']).columns
-    df = pd.get_dummies(df, columns=colunas_categoricas)
+    df = pd.get_dummies(df, columns=colunas_categoricas, drop_first=True)
 
     # Balanceamento dos dados
     y = df['Churn Value'] # Rótulos    
@@ -217,7 +217,6 @@ def clusterizacao(df):
         silhueta(df)
 
 def cotovelo(df):
-    st.markdown("### Método do Cotovelo")
     inertia_values = []
     k_values = range(2, 21)
     for k in k_values:
@@ -234,7 +233,6 @@ def cotovelo(df):
     st.pyplot(plt)
 
 def silhueta(df):
-    st.markdown("### Análise da Silhueta")
     k_values = range(2, 21)
     selected_k = st.selectbox('Escolha o valor de K:', k_values)
     kmeans = KMeans(n_clusters=selected_k, init='random', n_init=10, max_iter=300, random_state=42)
