@@ -3,16 +3,13 @@ import streamlit as st
 from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix, silhouette_score, silhouette_samples
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
 import plotly.express as px
 import plotly.figure_factory as ff
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-import numpy as np
 
 
 st.set_page_config(
@@ -29,9 +26,8 @@ st.set_page_config(
 def main():
     header()
     df_processado = preprocessamento()
-    df_transformado, features, rotulos = transformacao(df_processado)
+    features, rotulos = transformacao(df_processado)
     mineracao_de_dados(features, rotulos)
-
 
 
 def header():
@@ -45,12 +41,13 @@ def header():
 def preprocessamento():
     st.markdown("### Pré-processamento")
     st.markdown("""
-                Nesta etapa, a coluna 'Customer ID' foi removida, pois ela é apenas um identificador único para cada cliente e não tem impacto nos modelos de <i>machine learning</i> que serão utilizados. Também foram removidas as colunas 'Churn Reason' e 'Churn Category', visto que que elas podem impactar negativamente os resultados dos algoritmos pois indicam o motivo que levou determinados clientes a deixarem a empresa, fazendo com que os modelos usados decorem os clientes que sairão. Na coluna 'Customer Satisfaction', foi utilizada a moda para preencher os valores faltantes, identificando qual o valor que mais se repete e inserindo-o nas linhas que possuem valor nulo.
+                Nesta etapa, a coluna 'Customer ID' foi removida, pois ela é apenas um identificador único para cada cliente e não tem impacto nos modelos de <i>machine learning</i> que serão utilizados. As colunas 'City', 'Zip Code', 'Latitude', 'Longitude' e 'Population' foram removidas pois, além de não impactarem o resultado dos modelos, elas afetam negativamente o desempenho dos algoritmos.<br>
+                Também foram removidas as colunas 'Churn Reason' e 'Churn Category', visto que que elas podem impactar negativamente os resultados dos algoritmos pois indicam o motivo que levou determinados clientes a deixarem a empresa, fazendo com que os modelos usados decorem os clientes que sairão. Na coluna 'Customer Satisfaction', foi utilizada a moda para preencher os valores faltantes, identificando qual o valor que mais se repete e inserindo-o nas linhas que possuem valor nulo.
                 """,
                 unsafe_allow_html=True)
     df = ler_dataset()
     df = df.drop(['Customer ID', 'City', 'Zip Code', 'Latitude', 'Longitude', 'Population', 'Churn Reason', 'Churn Category'], axis = 1)
-    df['Customer Satisfaction'].fillna(df['Customer Satisfaction'].mode()[0], inplace=True) #perigoso isso
+    df['Customer Satisfaction'].fillna(df['Customer Satisfaction'].mode()[0], inplace=True)
 
     if st.checkbox("Mostrar dataset após o pré-processamento dos dados"):
         st.dataframe(df)
@@ -68,12 +65,16 @@ def ler_dataset():
 def transformacao(df):
     st.markdown("### Transformação")
     st.markdown("""
-                Nesta etapa, foi utlizada a técnica <i>One-Hot Encoding</i> para converter os dados das variáveis categóricas em valores numéricos. Em seguida, foi realizado o balanceamento dos dados utilizando a técnica <i>SMOTE</i>.
+                Nesta etapa, as colunas categóricas com valor binário tiveram seus dados convertidos para 0 e 1, e foi utilizada a técnica <i>One-Hot Encoding</i> para converter os dados das demais variáveis categóricas em valores numéricos. Em seguida, foi realizado o balanceamento dos dados utilizando a técnica <i>SMOTE</i>.
                 """,
                 unsafe_allow_html=True)
-    colunas_categoricas_binarias = ['Referred a Friend', 'Phone Service', 'Multiple Lines', 'Internet Service', 'Online Security', 'Online Backup', 'Device Protection Plan', 'Premium Tech Support', 'Streaming TV', 'Streaming Movies', 'Streaming Music', 'Unlimited Data', 'Paperless Billing', 'Under 30', 'Senior Citizen', 'Married', 'Dependents']
+    
+    colunas_categoricas_binarias = ['Referred a Friend', 'Phone Service', 'Multiple Lines', 'Internet Service', 'Online Security', 
+                                    'Online Backup', 'Device Protection Plan', 'Premium Tech Support', 'Streaming TV', 'Streaming Movies', 
+                                    'Streaming Music', 'Unlimited Data', 'Paperless Billing', 'Under 30', 'Senior Citizen', 'Married', 
+                                    'Dependents']
     df['Gender'].replace({'Male': 0, 'Female': 1}, inplace=True)
-    for i, coluna in enumerate(colunas_categoricas_binarias):
+    for coluna in colunas_categoricas_binarias:
         df[coluna].replace({'No': 0, 'Yes': 1}, inplace=True)
     colunas_categoricas_multivalor = ['Offer', 'Internet Type', 'Contract', 'Payment Method']
     df = pd.get_dummies(df, columns=colunas_categoricas_multivalor)
@@ -89,7 +90,7 @@ def transformacao(df):
         st.dataframe(df_balanceado)
     st.divider()
 
-    return df_balanceado, df_balanceado.drop('Churn Value', axis = 1), df_balanceado['Churn Value']
+    return df_balanceado.drop('Churn Value', axis = 1), df_balanceado['Churn Value']
 
 
 def mineracao_de_dados(x, y):
