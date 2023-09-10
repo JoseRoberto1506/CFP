@@ -6,11 +6,11 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.base import TransformerMixin
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler,LabelEncoder
 import plotly.express as px
 
 
-clustering_cols = ['Gender','Age','Married','Dependents']
+clustering_cols = ['Age','Gender','Married','Dependents']
 
 st.set_page_config(
     page_title= "Agrupamento",
@@ -27,6 +27,7 @@ def main():
     header()
     df = ler_dataset()
     clusterizado = clusterizacao(df, StandardScaler())
+    clusterizacao_interativa()
     graficos_iniciais_cluster(clusterizado)
     graficos_versus_servicos(clusterizado)
 
@@ -198,5 +199,33 @@ def graficos_versus_servicos(dfrecebido):
                 barmode='group')
         st.plotly_chart(fig)
 
+def clusterizacao_interativa():
+    data = pd.read_csv("./data/telco_churn_data.csv")
+
+    clustering_cols = ['Age', 'Gender', 'Married', 'Dependents']
+
+    colunas_categoricas_binarias = ['Married','Dependents']
+    data['Gender'].replace({'Male': 0, 'Female': 1}, inplace=True)
+    for coluna in colunas_categoricas_binarias:
+        data[coluna].replace({'No': 0, 'Yes': 1}, inplace=True)
+
+    # Barra lateral para seleção de coluna e número de clusters
+    st.header('Clusterização Interativa')
+    coluna_cluster = st.selectbox('Selecione uma coluna para clusterizar:', clustering_cols)
+    num_clusters = st.slider('Selecione o número de clusters:', 2, 10, 2)
+
+    X = data[[coluna_cluster]]
+    # Aplicar o algoritmo de agrupamento K-Means
+    model = KMeans(n_clusters=num_clusters, random_state=0)
+    data['cluster'] = model.fit_predict(data[clustering_cols])
+
+    # Visualização do gráfico de dispersão (usando Age vs. Dependents como exemplo)
+    if 'cluster' in data.columns:
+        st.subheader("Visualização dos Clusters")
+        fig, ax = plt.subplots()
+        scatter = ax.scatter(X, data['cluster'], c=data['cluster'], cmap='rainbow')
+        ax.set_xlabel(coluna_cluster)
+        ax.set_ylabel("cluster")
+        st.pyplot(fig)
 
 main()
