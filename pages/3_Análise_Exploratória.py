@@ -25,8 +25,9 @@ def profile(df):
 def main():
     header()
     df = pd.read_csv("./data/telco_churn_data.csv")
-    profile(df)
     build_graphics(df)
+    profile(df)
+
 
 
 def header():
