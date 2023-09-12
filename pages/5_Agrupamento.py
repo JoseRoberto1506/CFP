@@ -188,7 +188,7 @@ def graficos_iniciais_cluster(dfrecebido):
              barmode='group')
     cols[0].plotly_chart(fig, use_container_width=False)
 
-    st.divider()
+    
 
 
 def graficos_versus_servicos(dfrecebido):
@@ -207,7 +207,7 @@ def graficos_versus_servicos(dfrecebido):
                 barmode='group')
         
         cols[0].plotly_chart(fig, use_container_width=False)
-    st.divider()
+    
 
 def clusterizacao_interativa():
     data = pd.read_csv("./data/telco_churn_data.csv")
@@ -223,8 +223,8 @@ def clusterizacao_interativa():
     # Barra lateral para seleção de coluna e número de clusters
     st.header('Clusterização Interativa')
     
-    coluna_cluster = st.multiselect('Clusterizar por:', clustering_cols, ['Age','Gender'])
-    num_clusters = st.slider('Selecione o número de clusters:', 2, 15, 2)
+    coluna_cluster = st.multiselect('Clusterizar por:', clustering_cols, ['Age','Gender','Married','Dependents'])
+    num_clusters = st.slider('Selecione o número de clusters:', 2, 15, 11)
     
 
     
@@ -234,20 +234,8 @@ def clusterizacao_interativa():
     clusterizando['Cluster'] = model.fit_predict(clusterizando[coluna_cluster])
     data['Cluster']=clusterizando['Cluster']
 
-    # Visualização do gráfico de dispersão (usando Age vs. Dependents como exemplo)
-    if 'Cluster' in data.columns and len(coluna_cluster) >= 2:
-        st.subheader("Visualização dos Clusters")
-        expander=st.expander("Visualizar")
-        cols = expander.columns(1)
-        color_scale = ['#00ccff', '#cc00ff', '#ffcc00', '#0066bb', '#6600bb', '#bb0066', '#bb6600', '#ff0066', '#66ff66', '#ee0503']
-
-        for i in range(len(coluna_cluster)):
-            for j in range(i+1, len(coluna_cluster)):
-                c1 = coluna_cluster[i]
-                c2 = coluna_cluster[j]
-                fig = px.scatter(data, x=c1, y=c2, color=data['Cluster'],title=f'{c1} vs {c2}',color_discrete_sequence=color_scale)
-                cols[0].plotly_chart(fig, use_container_width=False)
-    st.divider()
+    
+    
     return data
 
 main()
