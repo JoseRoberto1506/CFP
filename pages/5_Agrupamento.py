@@ -8,6 +8,9 @@ import numpy as np
 from sklearn.base import TransformerMixin
 from sklearn.preprocessing import MinMaxScaler, StandardScaler,LabelEncoder
 import plotly.express as px
+from sklearn.decomposition import PCA
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 clustering_cols = ['Age','Gender','Married','Dependents']
@@ -27,9 +30,10 @@ def main():
     header()
     df = ler_dataset()
     clusterizado = clusterizacao(df, StandardScaler())
-    clusterizacao_interativa()
-    graficos_iniciais_cluster(clusterizado)
-    graficos_versus_servicos(clusterizado)
+    clusterizado_dois=clusterizacao_interativa()
+    graficos_iniciais_cluster(clusterizado_dois)
+    graficos_versus_servicos(clusterizado_dois)
+    
 
 
 def header():
@@ -154,16 +158,18 @@ def silhueta(df):
 
 def graficos_iniciais_cluster(dfrecebido):
     st.markdown("### Distribuição de caracterísicas dos clientes por Cluster")
+    expander=st.expander("Visualizar")
+    cols = expander.columns(1)
     df=dfrecebido.copy()
     fig = px.scatter (df, x='Cluster', y='Age')
-    st.plotly_chart(fig)
+    cols[0].plotly_chart(fig, use_container_width=False)
     df_counts = df.groupby(['Cluster', 'Gender']).size().reset_index(name='Count')
     fig = px.bar(df_counts, x='Cluster', y='Count',color='Gender',
              title='Distribuição de Gênero por Cluster',
              labels={'Cluster': 'Cluster', 'Count': 'Quantidade de Clientes'},
              color_discrete_map={'Male': 'blue', 'Female': 'pink'},
              barmode='group')
-    st.plotly_chart(fig)
+    cols[0].plotly_chart(fig, use_container_width=False)
 
     df_counts = df.groupby(['Cluster', 'Married']).size().reset_index(name='Count')
     fig = px.bar(df_counts, x='Cluster', y='Count',color='Married',
@@ -171,7 +177,7 @@ def graficos_iniciais_cluster(dfrecebido):
              labels={'Cluster': 'Cluster', 'Count': 'Quantidade de Clientes'},
              color_discrete_map={'No': 'Red', 'Yes': 'Blue'},
              barmode='group')
-    st.plotly_chart(fig)
+    cols[0].plotly_chart(fig, use_container_width=False)
 
     fig = px.bar(df, x='Cluster', y='Dependents', )
     df_counts = df.groupby(['Cluster', 'Dependents']).size().reset_index(name='Count')
@@ -180,13 +186,15 @@ def graficos_iniciais_cluster(dfrecebido):
              labels={'Cluster': 'Cluster', 'Count': 'Quantidade de Clientes'},
              color_discrete_map={'No': 'Red', 'Yes': 'Blue'},
              barmode='group')
-    st.plotly_chart(fig)
+    cols[0].plotly_chart(fig, use_container_width=False)
 
     st.divider()
 
 
 def graficos_versus_servicos(dfrecebido):
     st.markdown("### Distribuição de serviços contratados pelos clientes por Cluster")
+    expander=st.expander("Visualizar")
+    cols = expander.columns(1)
     servicos=['Phone Service','Multiple Lines','Internet Service','Online Security', 'Online Backup','Device Protection Plan', 
               'Premium Tech Support','Streaming TV', 'Streaming Movies','Streaming Music']
     df=dfrecebido.copy()
@@ -197,35 +205,49 @@ def graficos_versus_servicos(dfrecebido):
                 title=f'Cluster X {servico}',
                 labels={'Cluster': 'Cluster', 'Count': 'Quantidade de Clientes'},
                 barmode='group')
-        st.plotly_chart(fig)
+        
+        cols[0].plotly_chart(fig, use_container_width=False)
+    st.divider()
 
 def clusterizacao_interativa():
     data = pd.read_csv("./data/telco_churn_data.csv")
+    clusterizando=data.copy()
 
     clustering_cols = ['Age', 'Gender', 'Married', 'Dependents']
 
     colunas_categoricas_binarias = ['Married','Dependents']
-    data['Gender'].replace({'Male': 0, 'Female': 1}, inplace=True)
+    clusterizando['Gender'].replace({'Male': 0, 'Female': 1}, inplace=True)
     for coluna in colunas_categoricas_binarias:
-        data[coluna].replace({'No': 0, 'Yes': 1}, inplace=True)
+        clusterizando[coluna].replace({'No': 0, 'Yes': 1}, inplace=True)
 
     # Barra lateral para seleção de coluna e número de clusters
     st.header('Clusterização Interativa')
-    coluna_cluster = st.selectbox('Selecione uma coluna para clusterizar:', clustering_cols)
-    num_clusters = st.slider('Selecione o número de clusters:', 2, 10, 2)
+    
+    coluna_cluster = st.multiselect('Clusterizar por:', clustering_cols, ['Age','Gender'])
+    num_clusters = st.slider('Selecione o número de clusters:', 2, 15, 2)
+    
 
-    X = data[[coluna_cluster]]
+    
     # Aplicar o algoritmo de agrupamento K-Means
     model = KMeans(n_clusters=num_clusters, random_state=0)
-    data['cluster'] = model.fit_predict(data[clustering_cols])
+    clusterizando=scale(clusterizando,StandardScaler())
+    clusterizando['Cluster'] = model.fit_predict(clusterizando[coluna_cluster])
+    data['Cluster']=clusterizando['Cluster']
 
     # Visualização do gráfico de dispersão (usando Age vs. Dependents como exemplo)
-    if 'cluster' in data.columns:
+    if 'cluster' in data.columns and len(coluna_cluster) >= 2:
         st.subheader("Visualização dos Clusters")
-        fig, ax = plt.subplots()
-        scatter = ax.scatter(X, data['cluster'], c=data['cluster'], cmap='rainbow')
-        ax.set_xlabel(coluna_cluster)
-        ax.set_ylabel("cluster")
-        st.pyplot(fig)
+        expander=st.expander("Visualizar")
+        cols = expander.columns(1)
+        color_scale = ['#00ccff', '#cc00ff', '#ffcc00', '#0066bb', '#6600bb', '#bb0066', '#bb6600', '#ff0066', '#66ff66', '#ee0503']
+
+        for i in range(len(coluna_cluster)):
+            for j in range(i+1, len(coluna_cluster)):
+                c1 = coluna_cluster[i]
+                c2 = coluna_cluster[j]
+                fig = px.scatter(data, x=c1, y=c2, color=data['Cluster'],title=f'{c1} vs {c2}',color_discrete_sequence=color_scale)
+                cols[0].plotly_chart(fig, use_container_width=False)
+    
+    return data
 
 main()
