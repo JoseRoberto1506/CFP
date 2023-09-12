@@ -33,6 +33,8 @@ def main():
     clusterizado_dois=clusterizacao_interativa()
     graficos_iniciais_cluster(clusterizado_dois)
     graficos_versus_servicos(clusterizado_dois)
+    if st.checkbox("Mostrar dataset após clusterização interativa"):
+        st.dataframe(clusterizado_dois)
     
 
 
@@ -62,9 +64,7 @@ def clusterizacao(dfrecebido, scaler:TransformerMixin=None):
     dfcluster['Cluster'] = modelo.fit_predict(dfcluster)
     df_final_de_verdade['Cluster'] = dfcluster['Cluster']
 
-    if st.checkbox("Mostrar dataset após clusterização"):
-        st.dataframe(df_final_de_verdade)
-    st.divider()
+   
 
     return df_final_de_verdade
 
