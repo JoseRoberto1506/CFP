@@ -235,7 +235,7 @@ def clusterizacao_interativa():
     data['Cluster']=clusterizando['Cluster']
 
     # Visualização do gráfico de dispersão (usando Age vs. Dependents como exemplo)
-    if 'cluster' in data.columns and len(coluna_cluster) >= 2:
+    if 'Cluster' in data.columns and len(coluna_cluster) >= 2:
         st.subheader("Visualização dos Clusters")
         expander=st.expander("Visualizar")
         cols = expander.columns(1)
@@ -247,7 +247,7 @@ def clusterizacao_interativa():
                 c2 = coluna_cluster[j]
                 fig = px.scatter(data, x=c1, y=c2, color=data['Cluster'],title=f'{c1} vs {c2}',color_discrete_sequence=color_scale)
                 cols[0].plotly_chart(fig, use_container_width=False)
-    
+    st.divider()
     return data
 
 main()
