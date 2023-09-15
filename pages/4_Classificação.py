@@ -10,7 +10,7 @@ import plotly.figure_factory as ff
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-
+from sklearn.tree import DecisionTreeClassifier
 
 st.set_page_config(
     page_title= "Machine Learning",
@@ -108,6 +108,8 @@ def mineracao_de_dados(x, y):
         knn(x, y)
     with st.expander("Naive Bayes"):
         naive_bayes(x, y)
+    with st.expander("Decision Tree"):
+        decision_tree_classifier(x,y)
     st.divider()
     
 
@@ -210,6 +212,23 @@ def naive_bayes(x, y):
     naive_bayes.fit(X_train, y_train)
     y_pred = naive_bayes.predict(X_test)
     metricas_de_classificacao(y_test, y_pred, "Naive Bayes")
+    matriz_de_confusao(confusion_matrix(y_test, y_pred))
+
+
+def decision_tree_classifier(x, y):
+    st.markdown("""
+                A Árvore de Decisão é um algoritmo de aprendizado de máquina que funciona construindo uma árvore na qual cada nó interno representa um teste em um atributo e cada folha representa uma classe. Este é um algoritmo de aprendizado supervisionado útil para problemas de classificação e regressão.
+                """, 
+                unsafe_allow_html=True)
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    decision_tree = DecisionTreeClassifier()
+    decision_tree.fit(X_train_scaled, y_train)
+    y_pred = decision_tree.predict(X_test_scaled)
+    metricas_de_classificacao(y_test, y_pred, "Naive Bayes")
+    feature_importance(X_train.columns, decision_tree.feature_importances_)
     matriz_de_confusao(confusion_matrix(y_test, y_pred))
 
 
