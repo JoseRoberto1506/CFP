@@ -10,6 +10,7 @@ import plotly.figure_factory as ff
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
+from xgboost import XGBClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 st.set_page_config(
@@ -108,6 +109,8 @@ def mineracao_de_dados(x, y):
         knn(x, y)
     with st.expander("Naive Bayes"):
         naive_bayes(x, y)
+    with st.expander("XGBoost"):
+        xgboost(x, y)
     with st.expander("Decision Tree"):
         decision_tree_classifier(x,y)
     st.divider()
@@ -212,6 +215,21 @@ def naive_bayes(x, y):
     naive_bayes.fit(X_train, y_train)
     y_pred = naive_bayes.predict(X_test)
     metricas_de_classificacao(y_test, y_pred, "Naive Bayes")
+    matriz_de_confusao(confusion_matrix(y_test, y_pred))
+
+
+def xgboost(x, y):
+    st.markdown("""
+                O XGBoost é um algoritmo de aprendizagem supervisionada que se baseia em árvores de decisão e <i>gradient boosting</i>, sendo utilizado em problemas de regressão e classificação. De uma forma geral, ele combina as previsões de vários modelos fracos para obter uma previsão mais precisa. Dentre as vantagens de utilizar o XGBoost estão o alto desempenho, a capacidade de lidar com conjuntos de dados grandes e a tolerância a valores ausentes. Mas dentre as desvantagens deste modelo estão o risco de <i>overfitting</i>, o custo computacional elevado e o alto consumo de memória.
+                """,
+                unsafe_allow_html=True)
+    
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+    xgb_classifier = XGBClassifier(n_estimators=50, learning_rate=0.3, random_state=42)
+    xgb_classifier.fit(X_train, y_train)
+    y_pred = xgb_classifier.predict(X_test)
+    metricas_de_classificacao(y_test, y_pred, "XGBoost")
+    feature_importance(X_train.columns, xgb_classifier.feature_importances_)
     matriz_de_confusao(confusion_matrix(y_test, y_pred))
 
 
