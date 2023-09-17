@@ -26,7 +26,7 @@ def main():
     header()
     df_processado = preprocessamento()
     features, rotulos = transformacao(df_processado)
-    resultados = mineracao_de_dados(features, rotulos)
+    resultados = cross_validation(features, rotulos)
     construir_dataframe_de_resultados(resultados)
 
 
@@ -72,13 +72,8 @@ def transformacao(df):
     return df_balanceado.drop('Churn Value', axis = 1), df_balanceado['Churn Value']
 
 
-def mineracao_de_dados(x, y):
-    st.markdown("### Resultados do 5-Fold Cross-Validation")
-    cross_validation(x, y)
-    st.divider()
-
-
 def cross_validation(x, y):
+    st.markdown("### Resultados do 5-Fold Cross-Validation")
     modelos = {
         "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
         "SVM": SVC(kernel='linear'),
