@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
 import plotly.express as px
@@ -113,8 +113,10 @@ def mineracao_de_dados(x, y):
         xgboost(x, y)
     with st.expander("Decision Tree"):
         decision_tree_classifier(x,y)
+    with st.expander("Gradient Boosting"):
+        gradient_boosting(x,y)
     st.divider()
-    
+
 
 def random_forest(x, y):
     st.markdown("""
@@ -249,5 +251,18 @@ def decision_tree_classifier(x, y):
     feature_importance(X_train.columns, decision_tree.feature_importances_)
     matriz_de_confusao(confusion_matrix(y_test, y_pred))
 
+
+def gradient_boosting(x,y):
+    st.markdown("""O Gradient Boosting é uma técnica de aprendizado de máquina que constrói um modelo preditivo forte combinando várias árvores de decisão fracas em um processo sequencial. Cada árvore é treinada para corrigir os erros do modelo anterior, tornando o modelo geralmente mais preciso. O Gradient Boosting é amplamente usado em tarefas de classificação e regressão devido à sua eficácia e capacidade de lidar com dados heterogêneos. No entanto, também pode ser sensível a overfitting, e é importante ajustar os hiperparâmetros adequadamente.
+                """,
+                unsafe_allow_html=True)
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+    clf = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    feature_i= clf.feature_importances_
+    metricas_de_classificacao(y_test, y_pred, "Gradient Boosting")
+    matriz_de_confusao(confusion_matrix(y_test, y_pred))
+    feature_importance(X_train.columns, feature_i)
 
 main()
